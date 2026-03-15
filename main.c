@@ -42,7 +42,7 @@ int main(){
     unsigned char avl_packet[] = {
 
         0x00,0x00,0x00,0x00,   // preamble
-        0x00,0x00,0x00,0x2D,   // data length
+        0x00,0x00,0x00,0x1E,   // data length
 
         0x08,                  // codec
         0x01,                  // records
@@ -66,12 +66,23 @@ int main(){
         0x00,                  // event id
         0x00,                  // total IO
 
+        0x00,                  // N1
+        0x00,                  // N2
+        0x00,                  // N4
+        0x00,                  // N8
+
+        0x01,                  // records again
+
         0x00,0x00,0x00,0x00    // CRC placeholder
     };
 
     send(sock, avl_packet, sizeof(avl_packet), 0);
     printf("AVL packet sent\n");
-    recv(sock, buffer, 4, 0);
+    int n = recv(sock, buffer, 4, 0);
+    printf("ACK: %02X %02X %02X %02X\n",
+        buffer[0],buffer[1],buffer[2],buffer[3]
+        );
+
     printf("server acknowledged\n");
     close(sock);
     return 0;
