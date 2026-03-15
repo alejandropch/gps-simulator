@@ -1,9 +1,11 @@
 #include <netinet/in.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include "utils/utils.h"
 
 #define SERVER_IP "::1"
 #define SERVER_PORT 5027
@@ -38,43 +40,41 @@ int main(){
   }
   printf("IMEI accepted\n");
 
-      // --- SIMPLE AVL PACKET (Codec 8) ---
-    unsigned char avl_packet[] = {
+  unsigned char avl_packet[] = {
 
-        0x00,0x00,0x00,0x00,   // preamble
-        0x00,0x00,0x00,0x1E,   // data length
+      0x00,0x00,0x00,0x00,   // preamble
+      0x00,0x00,0x00,0x21,   // data length = 30
+      0x08,                  // codec
+      0x01,                  // records
 
-        0x08,                  // codec
-        0x01,                  // records
+      // timestamp - 8 bytes - index [10, 17]
+      0x00,0x00,0x01,0x94,0x4A,0xC0,0x00,0x00,
 
-        // timestamp
-        0x00,0x00,0x01,0x94,0x4A,0xC0,0x00,0x00,
+      0x01,                  // priority
 
-        0x01,                  // priority
+      // longitude - 4 bytes - index [19, 22]
+      0xF8,0xA4,0xA1,0xB0,
 
-        // longitude
-        0xF8,0xA4,0xA1,0xB0,
+      // latitude - 4 bytes - index [23, 26]
+      0xFF,0x72,0x8B,0x50,
 
-        // latitude
-        0xFF,0x72,0x8B,0x50,
+      0x00,0xB4,             // altitude - index [27, 28]
+      0x01,0x2C,             // angle - index [29, 30]
+      0x05,                  // satellites - index [31]
+      0x00,0x00,             // speed - index [32 - 33]
 
-        0x00,0xB4,             // altitude
-        0x01,0x2C,             // angle
-        0x05,                  // satellites
-        0x00,0x00,             // speed
+      0x00,                  // event id
+      0x00,                  // total IO
 
-        0x00,                  // event id
-        0x00,                  // total IO
+      0x00,                  // N1 - index [36 -
+      0x00,                  // N2
+      0x00,                  // N4
+      0x00,                  // N8   39]
 
-        0x00,                  // N1
-        0x00,                  // N2
-        0x00,                  // N4
-        0x00,                  // N8
+      0x01,                  // NOD2 [40]
 
-        0x01,                  // records again
-
-        0x00,0x00,0x00,0x00    // CRC placeholder
-    };
+      0x00,0x00,0x00,0x00    // CRC placeholder - 4 bytes - index [41 - 44]
+  };
 
     send(sock, avl_packet, sizeof(avl_packet), 0);
     printf("AVL packet sent\n");
@@ -84,6 +84,49 @@ int main(){
         );
 
     printf("server acknowledged\n");
+
+
+    double route[][2] = {
+      {-8.10980, -79.02420},
+      {-8.11010, -79.02390},
+      {-8.11040, -79.02360},
+      {-8.11070, -79.02330},
+      {-8.11100, -79.02300},
+      {-8.11130, -79.02270},
+      {-8.11150, -79.02240},
+      {-8.11155, -79.02210},
+      {-8.11160, -79.02190},
+      {-8.11145, -79.02160},
+      {-8.11120, -79.02140},
+      {-8.11090, -79.02120},
+      {-8.11060, -79.02100}
+    };
+
+    for(int i = 0; i < sizeof(route)/sizeof(route[0]); i++){
+      printf("sending lat=%.3f lon=%.3f\n", route[i][0], route[i][1]);
+      long long ts = current_time_ms();
+      int lat = route[i][0] * 10000000;
+      int lon = route[i][1] * 10000000;
+
+      write_int64(&avl_packet[10], ts);
+      write_int32(&avl_packet[19], lon);
+      write_int32(&avl_packet[23], lat);
+
+      uint32_t crc =  crc16_teltonika(&avl_packet[8], 30);
+      write_crc(&avl_packet[41], crc);
+      printf("avl_packet size: %ld\n", sizeof(avl_packet));
+      send(sock, avl_packet, sizeof(avl_packet), 0);
+
+      n = recv(sock, buffer, 4, 0);
+
+      if (n == 4) {
+        printf("ACK records accepted: %d\n",
+          (buffer[0]<<24)|(buffer[1]<<16)|(buffer[2]<<8)|buffer[3]);
+      }
+
+      sleep(3);
+    }
+
     close(sock);
     return 0;
 
