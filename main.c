@@ -16,7 +16,7 @@ int main(){
 
   int sock;
   struct sockaddr_in6 server;
-  unsigned char buffer[1024];
+  unsigned char buffer[BUFFER_SIZE];
   sock = socket(AF_INET6, SOCK_STREAM, 0);
   server.sin6_port = htons(SERVER_PORT);
   server.sin6_family = AF_INET6;
@@ -42,7 +42,7 @@ int main(){
   }
   printf("IMEI accepted\n");
 
-  unsigned char avl_packet[] = {
+  unsigned char avl_packet[AVL_PACKET_SIZE] = {
 
       0x00,0x00,0x00,0x00,   // preamble
       0x00,0x00,0x00,0x21,   // data length = 30
@@ -89,60 +89,9 @@ int main(){
     printf("server did NOT acknowledged\n");
   } 
 
-  n = 0;
-  double route[][2] = {
-    {-8.10980, -79.02420},
-    {-8.11010, -79.02390},
-    {-8.11040, -79.02360},
-    {-8.11070, -79.02330},
-    {-8.11100, -79.02300},
-    {-8.11130, -79.02270},
-    {-8.11150, -79.02240},
-    {-8.11155, -79.02210},
-    {-8.11160, -79.02190},
-    {-8.11145, -79.02160},
-    {-8.11120, -79.02140},
-    {-8.11090, -79.02120},
-    {-8.11060, -79.02100}
-  };
-    // movement
-  printf("\n SIMULATING MOVEMENT \n");
-  for(int i = 0; i < sizeof(route)/sizeof(route[0]); i++){
-    printf("sending lat=%.3f lon=%.3f\n", route[i][0], route[i][1]);
-    long long ts = current_time_ms();
-    int lat = route[i][0] * 10000000;
-    int lon = route[i][1] * 10000000;
-
-    write_int64(&avl_packet[10], ts);
-    write_int32(&avl_packet[19], lon);
-    write_int32(&avl_packet[23], lat);
-
-    double dlat = (route[i][0] - route[i > 0 ? i-1 : 0][0]) * 111000.0;
-    double dlon = (route[i][1] - route[i > 0 ? i-1 : 0][1]) * 111000.0 * cos(route[i][0] * M_PI / 180.0);
-    double dist_m = sqrt(dlat*dlat + dlon*dlon);
-    uint16_t speed_kmh = (uint16_t)((dist_m / 3.0) * 3.6); // 3s interval
-
-    avl_packet[32] = (speed_kmh >> 8) & 0xFF;
-    avl_packet[33] = speed_kmh & 0xFF;
 
 
-    uint32_t crc =  crc16_teltonika(&avl_packet[8], 30);
-    write_crc(&avl_packet[41], crc);
-    printf("avl_packet size: %ld\n", sizeof(avl_packet));
-    send(sock, avl_packet, sizeof(avl_packet), 0);
-
-    n = recv(sock, buffer, 4, 0);
-
-    if (n == 4) {
-      printf("Server acknowledged: %d\n",
-        (buffer[0]<<24)|(buffer[1]<<16)|(buffer[2]<<8)|buffer[3]);
-    } else 
-      printf("server did NOT acknowledged\n");
-
-    sleep(3);
-  }
-
-
+  simulate_movement(&sock, avl_packet, buffer);
 
   // stop
   printf("\n SIMULATING GEOFENCE STOP \n");
