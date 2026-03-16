@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -111,6 +112,15 @@ int main(){
       write_int64(&avl_packet[10], ts);
       write_int32(&avl_packet[19], lon);
       write_int32(&avl_packet[23], lat);
+
+      double dlat = (route[i][0] - route[i > 0 ? i-1 : 0][0]) * 111000.0;
+      double dlon = (route[i][1] - route[i > 0 ? i-1 : 0][1]) * 111000.0 * cos(route[i][0] * M_PI / 180.0);
+      double dist_m = sqrt(dlat*dlat + dlon*dlon);
+      uint16_t speed_kmh = (uint16_t)((dist_m / 3.0) * 3.6); // 3s interval
+
+      avl_packet[32] = (speed_kmh >> 8) & 0xFF;
+      avl_packet[33] = speed_kmh & 0xFF;
+
 
       uint32_t crc =  crc16_teltonika(&avl_packet[8], 30);
       write_crc(&avl_packet[41], crc);
