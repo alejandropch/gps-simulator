@@ -1,4 +1,4 @@
 #!/bin/bash
 
 
-gcc main.c utils/converter.c -lm -o main
+gcc -Wall -Wextra main.c utils/*.c -lm -o main
