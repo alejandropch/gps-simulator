@@ -18,4 +18,5 @@ void write_crc(unsigned char *buf, int16_t value);
 uint16_t crc16_teltonika(const uint8_t *data, int len);
 long long current_time_ms();
 void simulate_movement(int *sock, unsigned char avl_packet[AVL_PACKET_SIZE], unsigned char buffer[BUFFER_SIZE]);
+void simulate_stop(int *sock, unsigned char avl_packet[AVL_PACKET_SIZE], unsigned char buffer[BUFFER_SIZE]);
 #endif

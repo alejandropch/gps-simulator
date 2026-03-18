@@ -89,67 +89,9 @@ int main(){
     printf("server did NOT acknowledged\n");
   } 
 
-
-
   simulate_movement(&sock, avl_packet, buffer);
+  simulate_stop(&sock, avl_packet, buffer);
 
-  // stop
-  printf("\n SIMULATING GEOFENCE STOP \n");
-  // Position INSIDE your geofence (adjust coords to be inside geofence 72)
-  double stop_lat = -8.11160;
-  double stop_lon = -79.02240;
-
-  int slat = stop_lat * 10000000;
-  int slon = stop_lon * 10000000;
-
-  // Set speed to 0
-  avl_packet[32] = 0x00;
-  avl_packet[33] = 0x00;
-
-  write_int32(&avl_packet[19], slon);
-  write_int32(&avl_packet[23], slat);
-
-  // Send 3 packets: entry, stopped, stopped 11 min later
-
-  for (int i = 0; i < 3; i++) {
-      long long ts = current_time_ms();
-      write_int64(&avl_packet[10], ts);
-
-      uint32_t crc = crc16_teltonika(&avl_packet[8], 30);
-      write_crc(&avl_packet[41], crc);
-
-      send(sock, avl_packet, sizeof(avl_packet), 0);
-      n = recv(sock, buffer, 4, 0);
-
-      if (n == 4)
-        printf("server acknowledged\n");
-      else 
-        printf("server did NOT acknowledged\n");
-
-      printf("Stop packet %d sent (t+%lld ms), ACK: %d\n", i,
-          ts,
-          (buffer[0]<<24)|(buffer[1]<<16)|(buffer[2]<<8)|buffer[3]);
-
-      sleep(2); // small real delay between sends
-  }
-
-  printf("\n RESETTING - sending movement packet\n");
-  avl_packet[32] = 0x00;
-  avl_packet[33] = 0xA; // speed = 10 kmh
-
-  long long ts = current_time_ms();
-  write_int64(&avl_packet[10], ts);
-  write_int32(&avl_packet[19], slon);
-  write_int32(&avl_packet[23], slat);
-  uint32_t crc = crc16_teltonika(&avl_packet[8], 30);
-  write_crc(&avl_packet[41], crc);
-  send(sock, avl_packet, sizeof(avl_packet), 0);
-  n = recv(sock, buffer, 4, 0);
-  if (n == 4)
-    printf("server acknowledged\n");
-  else 
-    printf("server did NOT acknowledged\n");
-  printf("Movement reset packet sent\n");
   sleep(2);
 
 
