@@ -1,4 +1,3 @@
 #!/bin/bash
 
-
-gcc -Wall -Wextra main.c utils/*.c -lm -o main
+gcc -std=gnu17 -Wall -Wextra main.c utils/*.c -lm -lpthread -o main
