@@ -1,5 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
+#include <pthread.h>
 #include <stdint.h>
 #include <netinet/in.h>
 #include <stdint.h>
@@ -15,8 +16,10 @@
 void write_int64(unsigned char *buf, int64_t value);
 void write_int32(unsigned char *buf, int32_t value);
 void write_crc(unsigned char *buf, int16_t value);
+int send_all(int sock, unsigned char *buf, int len);
 uint16_t crc16_teltonika(const uint8_t *data, int len);
 long long current_time_ms();
-void simulate_movement(int *sock, unsigned char avl_packet[AVL_PACKET_SIZE], unsigned char buffer[BUFFER_SIZE]);
-void simulate_stop(int *sock, unsigned char avl_packet[AVL_PACKET_SIZE], unsigned char buffer[BUFFER_SIZE]);
+int read_exact(int sock, unsigned char *buf, int len);
+void simulate_movement(int device_id, int *sock, unsigned char avl_packet[AVL_PACKET_SIZE], unsigned char buffer[BUFFER_SIZE], double (*route)[2], size_t route_len);
+void simulate_stop(int device_id, int *sock, unsigned char avl_packet[AVL_PACKET_SIZE], unsigned char buffer[BUFFER_SIZE], double stop_lat, double stop_lon);
 #endif
